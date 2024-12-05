@@ -161,7 +161,7 @@ function ListaAlunos() {
   const [alunos, setAlunos] = useState([]);
   const [pesquisa, setPesquisa] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [novoAluno, setNovoAluno] = useState({ nome: '', email: '', data_nascimento: '' });
+  const [novoAluno, setNovoAluno] = useState({ nome: '', email: '' });
   const [editandoAluno, setEditandoAluno] = useState(null);
 
   useEffect(() => {
@@ -178,29 +178,29 @@ function ListaAlunos() {
   };
 
   const handleIncluirAluno = () => {
-    setNovoAluno({ nome: '', email: '', data_nascimento: '' });
+    setNovoAluno({ nome: '', email: '' });
     setIsModalOpen(true);
     setEditandoAluno(null);
   };
 
   const handleAlterarAluno = (aluno) => {
-    setNovoAluno({ nome: aluno.nome, email: aluno.email, data_nascimento: aluno.data_nascimento });
+    setNovoAluno({ nome: aluno.nome, email: aluno.email });
     setIsModalOpen(true);
     setEditandoAluno(aluno);
   };
 
   const handleSalvarAluno = async () => {
-    const { nome, email, data_nascimento } = novoAluno;
-    if (!nome || !email || !data_nascimento) {
+    const { nome, email } = novoAluno;
+    if (!nome || !email) {
       alert('Preencha todos os campos!');
       return;
     }
 
     try {
       if (editandoAluno) {
-        await axios.put(`http://localhost:5000/alunos/${editandoAluno.id}`, { nome, email, data_nascimento });
+        await axios.put(`http://localhost:5000/alunos/${editandoAluno.id}`, { nome, email });
       } else {
-        await axios.post('http://localhost:5000/alunos', { nome, email, data_nascimento });
+        await axios.post('http://localhost:5000/alunos', { nome, email });
       }
       fetchAlunos();
       setIsModalOpen(false);
@@ -217,6 +217,11 @@ function ListaAlunos() {
       console.error('Erro ao excluir aluno:', error);
     }
   };
+
+  // Filtra alunos com base na pesquisa
+  const alunosFiltrados = alunos.filter((aluno) =>
+    aluno.nome.toLowerCase().includes(pesquisa.toLowerCase())
+  );
 
   return (
     <Container>
@@ -243,16 +248,14 @@ function ListaAlunos() {
           <tr>
             <Th>Nome</Th>
             <Th>Email</Th>
-            <Th>Data de Nascimento</Th>
             <Th>Ações</Th>
           </tr>
         </thead>
         <tbody>
-          {alunos.map((aluno) => (
+          {alunosFiltrados.map((aluno) => (
             <tr key={aluno.id}>
               <Td>{aluno.nome}</Td>
               <Td>{aluno.email}</Td>
-              <Td>{aluno.data_nascimento}</Td>
               <Td>
                 <Button onClick={() => handleAlterarAluno(aluno)}>
                   <FaEdit /> Editar
@@ -287,14 +290,6 @@ function ListaAlunos() {
                 type="email"
                 value={novoAluno.email}
                 onChange={(e) => setNovoAluno({ ...novoAluno, email: e.target.value })}
-              />
-            </FormGroup>
-            <FormGroup>
-              <Label>Data de Nascimento:</Label>
-              <Input
-                type="date"
-                value={novoAluno.data_nascimento}
-                onChange={(e) => setNovoAluno({ ...novoAluno, data_nascimento: e.target.value })}
               />
             </FormGroup>
             <ButtonSave onClick={handleSalvarAluno}>Salvar</ButtonSave>

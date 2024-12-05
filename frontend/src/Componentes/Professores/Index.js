@@ -226,6 +226,11 @@ function Professores() {
     }
   };
 
+  // Filtrando professores de acordo com o texto da pesquisa
+  const professoresFiltrados = professores.filter((professor) =>
+    professor.nome.toLowerCase().includes(pesquisa.toLowerCase())
+  );
+
   return (
     <Container>
       <Titulo>Lista de Professores</Titulo>
@@ -256,7 +261,7 @@ function Professores() {
           </tr>
         </thead>
         <tbody>
-          {professores.map((professor) => (
+          {professoresFiltrados.map((professor) => (
             <ProfessorItem key={professor.id}>
               <Td>{professor.nome}</Td>
               <Td>{professor.email}</Td>
@@ -305,7 +310,9 @@ function Professores() {
                 onChange={(e) => setNovoProfessor({ ...novoProfessor, disciplina: e.target.value })}
               />
             </FormGroup>
-            <ButtonSave onClick={handleSalvarProfessor}>Salvar</ButtonSave>
+            <ButtonSave onClick={handleSalvarProfessor}>
+              {editandoProfessor ? 'Salvar Alterações' : 'Salvar Professor'}
+            </ButtonSave>
           </ModalContent>
         </ModalOverlay>
       )}

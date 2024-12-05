@@ -1,14 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const { getAlunos, addNota, updateNota, deleteNota, getAlunosComNotas } = require('../controllers/notas');
+const {
+  getAlunos,
+  addNota,
+  updateNota,
+  deleteNota,
+  getNotasClickHouse,
+} = require('../controllers/notas');
 
-// Rota para obter alunos com notas do ClickHouse
-router.get('/alunos-com-notas', getAlunosComNotas);
-
-// Outras rotas existentes
+// Rotas de notas
+router.get('/notas-clickhouse', getNotasClickHouse);
 router.get('/alunos', getAlunos);
-router.post('/', addNota);
-router.put('/', updateNota);
-router.delete('/:alunoId', deleteNota);
+router.post('/add', addNota); // Ajuste na nomenclatura
+router.put('/update', updateNota);
+router.delete('/delete/:alunoId', deleteNota);
 
 module.exports = router;

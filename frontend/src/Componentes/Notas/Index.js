@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; 
 import styled from 'styled-components';
 import axios from 'axios';
 
@@ -69,65 +69,94 @@ const InputNota = styled.input`
   border: 1px solid #ccc;
   border-radius: 5px;
   text-align: center;
+  margin: 5px;
+`;
+
+const NotaQuadrado = styled.span`
+  display: inline-block;
+  width: 50px;
+  height: 40px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  text-align: center;
+  line-height: 40px;
+  margin: 3px;
+`;
+
+const Status = styled.span`
+  color: ${props => (props.status === 'Aprovado' ? 'green' : props.status === 'Reprovado' ? 'red' : 'gray')};
+  font-weight: bold;
 `;
 
 const Notas = () => {
   const [alunos, setAlunos] = useState([]);
-  const [isEditing, setIsEditing] = useState(null);
   const [notaTemp, setNotaTemp] = useState('');
+  const [isEditing, setIsEditing] = useState(null);
 
-  // Carregar os alunos com as notas ao montar o componente
   useEffect(() => {
-    carregarAlunos();
+    carregarDados();
   }, []);
 
-  const carregarAlunos = () => {
-    axios
-      .get('http://localhost:5000/alunos')
-      .then((response) => {
-        console.log('Dados recebidos do backend:', response.data); // Verificar o formato retornado
-        setAlunos(response.data);
-      })
-      .catch((error) => {
-        console.error('Erro ao carregar alunos:', error);
+  const carregarDados = async () => {
+    try {
+      const alunosResponse = await axios.get('http://localhost:5000/alunos');
+      const notasResponse = await axios.get('http://localhost:5000/notas/notas-clickhouse');
+
+      const alunosComNotas = alunosResponse.data.map((aluno) => {
+        const alunoNotas = notasResponse.data.find((nota) => nota.id === aluno.id);
+        return {
+          ...aluno,
+          notas: alunoNotas ? alunoNotas.notas : [],
+        };
       });
+
+      setAlunos(alunosComNotas);
+    } catch (error) {
+      console.error('Erro ao carregar os dados:', error);
+    }
   };
 
-  const handleAddNota = (alunoId) => {
-    if (!notaTemp) {
-      alert('Por favor, insira uma nota válida.');
+  const handleAddNota = async (alunoId) => {
+    if (!notaTemp || isNaN(notaTemp) || notaTemp < 0 || notaTemp > 100) {
+      alert('Por favor, insira uma nota válida entre 0 e 100.');
+      return;
+    }
+
+    const aluno = alunos.find((aluno) => aluno.id === alunoId);
+
+    if (aluno.notas.length >= 3) {
+      alert('Você não pode adicionar mais de 3 notas. Por favor, exclua uma antes de adicionar outra.');
       return;
     }
 
     const data = { alunoId, nota: parseFloat(notaTemp) };
 
-    axios
-      .post('http://localhost:5000/notas', data)
-      .then(() => {
-        alert('Nota adicionada com sucesso');
-        setNotaTemp('');
-        setIsEditing(null); // Desativa o modo de edição
-        carregarAlunos(); // Recarrega os dados atualizados
-      })
-      .catch((error) => {
-        console.error('Erro ao adicionar nota:', error);
-      });
+    try {
+      await axios.post('http://localhost:5000/notas/add', data);
+      alert('Nota adicionada com sucesso');
+      setNotaTemp('');
+      setIsEditing(null);
+      await carregarDados();
+    } catch (error) {
+      console.error('Erro ao adicionar a nota:', error);
+    }
   };
 
-  const handleDeleteNota = (alunoId) => {
-    if (!window.confirm('Tem certeza que deseja excluir todas as notas deste aluno?')) {
-      return;
-    }
+  const handleDeleteNota = async (alunoId) => {
+    if (!window.confirm('Tem certeza que deseja excluir todas as notas deste aluno?')) return;
 
-    axios
-      .delete(`http://localhost:5000/notas/${alunoId}`)
-      .then(() => {
-        alert('Notas excluídas com sucesso');
-        carregarAlunos();
-      })
-      .catch((error) => {
-        console.error('Erro ao excluir notas:', error);
-      });
+    try {
+      await axios.delete(`http://localhost:5000/notas/delete/${alunoId}`);
+      alert('Notas excluídas com sucesso');
+      await carregarDados();
+    } catch (error) {
+      console.error('Erro ao excluir as notas:', error);
+    }
+  };
+
+  const handleCloseAddNota = () => {
+    setIsEditing(null);
+    setNotaTemp('');
   };
 
   return (
@@ -138,37 +167,50 @@ const Notas = () => {
           <tr>
             <Th>Nome</Th>
             <Th>Notas</Th>
+            <Th>Média Final</Th>
+            <Th>Status</Th>
             <Th>Ações</Th>
           </tr>
         </thead>
         <tbody>
-          {alunos.map((aluno) => (
-            <tr key={aluno.id}>
-              <Td>{aluno.nome}</Td>
-              <Td>
-                {Array.isArray(aluno.notas) && aluno.notas.length > 0
-                  ? aluno.notas.join(', ')
-                  : 'Sem notas cadastradas'}
-              </Td>
-              <Td>
-                {isEditing === aluno.id ? (
-                  <>
-                    <InputNota
-                      type="number"
-                      value={notaTemp}
-                      onChange={(e) => setNotaTemp(e.target.value)}
-                    />
-                    <Button onClick={() => handleAddNota(aluno.id)}>Salvar</Button>
-                  </>
-                ) : (
-                  <>
-                    <Button onClick={() => setIsEditing(aluno.id)}>Adicionar</Button>
-                    <Button onClick={() => handleDeleteNota(aluno.id)}>Excluir</Button>
-                  </>
-                )}
-              </Td>
-            </tr>
-          ))}
+          {alunos.map((aluno) => {
+            const notas = aluno.notas.slice(0, 3); // Considera no máximo 3 notas
+            const mediaFinal = notas.length === 3 ? notas.reduce((acc, nota) => acc + nota, 0) / 3 : 0;
+            const notasText = notas.length > 0
+              ? notas.map((nota, index) => (
+                  <NotaQuadrado key={index}>{nota}</NotaQuadrado>
+                ))
+              : 'Sem notas cadastradas';
+
+            const statusMedia = mediaFinal >= 60 ? 'Aprovado' : mediaFinal > 0 ? 'Reprovado' : '';
+
+            return (
+              <tr key={aluno.id}>
+                <Td>{aluno.nome}</Td>
+                <Td>{notasText}</Td>
+                <Td>{mediaFinal.toFixed(2)}</Td>
+                <Td><Status status={statusMedia}>{statusMedia}</Status></Td>
+                <Td>
+                  {isEditing === aluno.id ? (
+                    <>
+                      <InputNota
+                        type="number"
+                        value={notaTemp}
+                        onChange={(e) => setNotaTemp(e.target.value)}
+                      />
+                      <Button onClick={() => handleAddNota(aluno.id)}>Salvar</Button>
+                      <Button onClick={handleCloseAddNota}> X </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button onClick={() => setIsEditing(aluno.id)}>Adicionar</Button>
+                      <Button onClick={() => handleDeleteNota(aluno.id)}>Excluir</Button>
+                    </>
+                  )}
+                </Td>
+              </tr>
+            );
+          })}
         </tbody>
       </Table>
     </Container>

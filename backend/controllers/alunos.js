@@ -3,20 +3,20 @@ const { salvarLogNaNuvem } = require('../utils/log');  // Importando a função 
 
 const alunosController = {
   create: (req, res) => {
-    const { nome, data_nascimento, email } = req.body;
+    const { nome, email } = req.body;
 
-    if (!nome || !data_nascimento || !email) {
+    if (!nome ||  !email) {
       return res.status(400).send('Todos os campos são obrigatórios.');
     }
 
     // Criação do aluno no banco
-    Alunos.create(nome, data_nascimento, email, (err) => {
+    Alunos.create(nome, email, (err) => {
       if (err) {
         console.error('Erro ao inserir aluno:', err);
         res.status(500).send('Erro ao inserir aluno.');
       } else {
         // Criando uma mensagem de log
-        const logMessage = `Novo aluno inserido: ${nome}, Nascimento: ${data_nascimento}, Email: ${email}`;
+        const logMessage = `Novo aluno inserido: ${nome}, Email: ${email}`;
 
         // Salva o log no Google Cloud Storage
         salvarLogNaNuvem(logMessage);
@@ -28,13 +28,13 @@ const alunosController = {
 
   update: (req, res) => {
     const { id } = req.params;
-    const { nome, data_nascimento, email } = req.body;
+    const { nome, email } = req.body;
 
     if (!nome || !data_nascimento || !email) {
       return res.status(400).send('Todos os campos são obrigatórios.');
     }
 
-    Alunos.update(id, nome, data_nascimento, email, (err) => {
+    Alunos.update(id, nome, email, (err) => {
       if (err) {
         console.error('Erro ao atualizar aluno:', err);
         res.status(500).send('Erro ao atualizar aluno.');
